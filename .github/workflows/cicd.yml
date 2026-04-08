@@ -34,10 +34,11 @@ jobs:
         run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/dockerimage:latest
 
       - name: Stop Existing Container
-        # 이전 컨테이너가 없을 때 오류로 인해 중단되지 않도록 || true 추가 
+        # 이전 컨테이너가 없을 때 오류로 인해 중단되지 않도록 continue-on-error 설정
+        continue-on-error: true
         run: |
-          docker stop ocr-server || true
-          docker rm ocr-server || true
+          docker stop ocr-server
+          docker rm ocr-server
 
       - name: Run New Container
         # 최신 이미지를 백그라운드(-d)로 실행합니다.
