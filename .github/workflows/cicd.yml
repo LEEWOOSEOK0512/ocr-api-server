@@ -42,12 +42,7 @@ jobs:
 
       - name: Run New Container
         # 최신 이미지를 백그라운드(-d)로 실행합니다.
-        run: |
-          docker run -d \
-            --name ocr-server \
-            -p 8000:8000 \
-            --restart unless-stopped \
-            ${{ secrets.DOCKERHUB_USERNAME }}/dockerimage:latest
+        run: docker run -d --name ocr-server -p 8000:8000 --restart unless-stopped ${{ secrets.DOCKERHUB_USERNAME }}/dockerimage:latest
 
       - name: Clean up unused docker images (optional)
         run: docker image prune -f
