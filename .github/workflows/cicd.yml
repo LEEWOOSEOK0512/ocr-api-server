@@ -1,0 +1,52 @@
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 코드가 push될 때 트리거됩니다.
+
+jobs:
+  # 1. CI 단계: 도커 이미지 빌드 및 푸시
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker Image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/dockerImage:latest .
+
+      - name: Push to Docker Hub
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/dockerImage:latest
+
+  # 2. CD 단계: 사용자의 컴퓨터(Self-hosted runner)에 최신 이미지 배포
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted  # 여기서 Github Self-hosted Runner로 등록한 로컬 환경을 지정합니다.
+    steps:
+      - name: Pull Latest Docker Image
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/dockerImage:latest
+
+      - name: Stop Existing Container
+        # 이전 컨테이너가 없을 때 오류로 인해 중단되지 않도록 || true 추가 
+        run: |
+          docker stop ocr-server || true
+          docker rm ocr-server || true
+
+      - name: Run New Container
+        # 최신 이미지를 백그라운드(-d)로 실행합니다.
+        run: |
+          docker run -d \
+            --name ocr-server \
+            -p 8000:8000 \
+            --restart unless-stopped \
+            ${{ secrets.DOCKERHUB_USERNAME }}/dockerImage:latest
+
+      - name: Clean up unused docker images (optional)
+        run: docker image prune -f
